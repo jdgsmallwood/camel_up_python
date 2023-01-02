@@ -1,0 +1,8 @@
+pyright
+isort
+black
+pytest
+pytest-cov
+jupyterlab
+build
+loguru
