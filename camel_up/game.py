@@ -42,7 +42,6 @@ class GameContext:
         self.track = defaultdict(list)
         self.current_space = {}
 
-
     def _set_up_betting_slips(self) -> dict[str, list[BettingSlip]]:
         output: dict[str, list[BettingSlip]] = {}
         for camel in self.camels:
@@ -65,17 +64,16 @@ class GameContext:
         color, dice_roll = self._pyramid.roll_dice()
         self._move_camel(color, dice_roll)
 
-
     def _move_camel(self, color: str, dice_roll: int):
         current_position = self.current_space[color]
         current_index = self.track[current_position].index(color)
-        stack = self.track[current_position][0:current_index + 1]
-        self.track[current_position] = self.track[current_position][current_index + 1 : -1]
-        self.track[current_position + dice_roll] = stack + self.track[current_position + dice_roll]
+        stack = self.track[current_position][0 : current_index + 1]
+        self.track[current_position] = self.track[current_position][current_index + 1 :]
+        self.track[current_position + dice_roll] = (
+            stack + self.track[current_position + dice_roll]
+        )
         for camel_color in stack:
             self.current_space[camel_color] = current_position + dice_roll
-
-
 
 
 class Pyramid:
@@ -129,6 +127,7 @@ class Player:
     def __init__(self, strategy: PlayerStrategy) -> None:
         self.coins = 3
         self.strategy = strategy
+        self.betting_slips = []
 
     def gain_coins(self, coins_to_gain: int) -> None:
         self.coins += coins_to_gain
