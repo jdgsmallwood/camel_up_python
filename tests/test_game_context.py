@@ -53,3 +53,25 @@ def test_betting_slips_set_up_correctly():
     assert context.betting_slips["red"][1].winnings_if_true == 3
     assert context.betting_slips["red"][2].winnings_if_true == 2
     assert context.betting_slips["red"][3].winnings_if_true == 2
+
+
+def test_is_leg_finished_returns_true_when_pyramid_is_empty():
+    camels = [Camel("red")]
+    context = GameContext(camels)
+    context.track[1] = ["red"]
+    context.current_space["red"] = 1
+    assert context.is_leg_finished() is False
+    context.roll_dice_and_move_camel()
+    assert context.is_leg_finished() is True
+
+
+def test_is_leg_finished_returns_true_when_camel_is_passed_finishing_line():
+    camels = [Camel("red")]
+    context = GameContext(camels)
+
+    context.track[6] = ["red"]
+    context.current_space["red"] = 6
+    assert context.is_leg_finished() is False
+    context.track[17] = ["red"]
+    context.current_space["red"] = 17
+    assert context.is_leg_finished() is True
