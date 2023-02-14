@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -11,6 +12,7 @@ class CamelUpGame:
 
     camels: list[Camel]
     players: list[Player]
+    finishing_space: int = 17
 
     _game_context: GameContext
 
@@ -18,13 +20,24 @@ class CamelUpGame:
         self.camels = camels
         self.players = players
 
-        self._game_context = GameContext(camels)
+        self._game_context = GameContext(camels, self.finishing_space)
+        self._place_camels_on_board()
 
-    def run_leg(self):
+    def run_leg(self) -> None:
         while not self._game_context.is_leg_finished():
             for player in self.players:
                 player_action = player.choose_action(self._game_context)
                 self._game_context.take_action(player_action, player)
+                if self._game_context.is_leg_finished():
+                    break
+
+    def _place_camels_on_board(self) -> None:
+        for camel in self.camels:
+            dice_roll: int = camel.roll_dice()
+            self._game_context.current_space[camel.color] = dice_roll
+            self._game_context.track[dice_roll] = [
+                camel.color
+            ] + self._game_context.track[dice_roll]
 
 
 class GameContext:
@@ -33,14 +46,17 @@ class GameContext:
     betting_slips: dict[str, list[BettingSlip]]
     track: dict[int, list[str]]
     current_space: dict[str, int]
+    finishing_space: int
     _pyramid: Pyramid
 
-    def __init__(self, camels: list[Camel]) -> None:
+    def __init__(self, camels: list[Camel], finishing_space: int = 17) -> None:
         self.camels = camels
+        self.camel_colors: list[str] = [camel.color for camel in self.camels]
         self.betting_slips = self._set_up_betting_slips()
         self._pyramid = Pyramid([camel.dice for camel in camels])
         self.track = defaultdict(list)
         self.current_space = {}
+        self.finishing_space = finishing_space
 
     def _set_up_betting_slips(self) -> dict[str, list[BettingSlip]]:
         output: dict[str, list[BettingSlip]] = {}
@@ -56,9 +72,13 @@ class GameContext:
         match player_action:
             case Action.ROLL_DICE:
                 self.roll_dice_and_move_camel()
+                player.gain_coins(1)
 
-    def is_leg_finished(self):
-        return False
+    def is_leg_finished(self) -> bool:
+        return len(self._pyramid.dice_still_to_roll) == 0 or any(
+            self.current_space[color] >= self.finishing_space
+            for color in self.camel_colors
+        )
 
     def roll_dice_and_move_camel(self):
         color, dice_roll = self._pyramid.roll_dice()
@@ -153,6 +173,13 @@ class BettingSlip:
     winnings_if_true: int
 
 
-class PlayerStrategy:
+class PlayerStrategy(ABC):
+    """Base class for player strategy. This will
+    be the place to define the logic of what action to take
+    given the current game context.
+
+    """
+
+    @abstractmethod
     def choose_action(self, context: GameContext) -> Action:
-        return Action.ROLL_DICE
+        ...
