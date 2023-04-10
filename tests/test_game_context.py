@@ -1,4 +1,5 @@
-from camel_up.game import Camel, GameContext
+from camel_up.game import Action, Camel, GameContext, Player
+from camel_up.actions import RollDiceAction, TakeBettingSlipAction
 
 
 def test_game_context_camels_move_as_expected_one_camel():
@@ -75,3 +76,85 @@ def test_is_leg_finished_returns_true_when_camel_is_passed_finishing_line():
     context.track[17] = ["red"]
     context.current_space["red"] = 17
     assert context.is_leg_finished() is True
+
+
+def test_get_leg_winner():
+    camels = [Camel("red"), Camel("blue"), Camel("purple")]
+    context = GameContext(camels)
+
+    context.track[6] = ["red"]
+    context.current_space["red"] = 6
+
+    context.track[7] = ["blue", "purple"]
+    context.current_space["blue"] = 7
+    context.current_space["purple"] = 7
+
+    winner = context.get_leg_winner()
+    assert winner == "blue"
+
+    runner_up = context.get_leg_runner_up()
+    assert runner_up == "purple"
+
+
+def test_get_leg_runner_up_different_spaces():
+    camels = [Camel("red"), Camel("blue"), Camel("purple")]
+    context = GameContext(camels)
+
+    context.track[6] = ["red"]
+    context.current_space["red"] = 6
+
+    context.track[7] = ["blue"]
+    context.current_space["blue"] = 7
+    context.track[8] = ["purple"]
+    context.current_space["purple"] = 8
+
+    winner = context.get_leg_winner()
+    assert winner == "purple"
+
+    runner_up = context.get_leg_runner_up()
+    assert runner_up == "blue"
+
+
+def test_is_game_finished():
+    camels = [Camel("red"), Camel("blue"), Camel("purple")]
+    context = GameContext(camels)
+
+    context.track[6] = ["red"]
+    context.current_space["red"] = 6
+
+    context.track[7] = ["blue"]
+    context.current_space["blue"] = 7
+    context.track[8] = ["purple"]
+    context.current_space["purple"] = 8
+
+    assert not context.is_game_finished()
+
+    context.track[19] = ["purple"]
+    context.current_space["purple"] = 19
+
+    assert context.is_game_finished()
+
+
+def test_player_can_take_move_action(mocker):
+    camels = [Camel("red"), Camel("blue"), Camel("purple")]
+    context = GameContext(camels)
+    context.track[1] = ["red", "blue", "purple"]
+    context.current_space["red"] = 1
+    context.current_space["blue"] = 1
+    context.current_space["purple"] = 1
+
+    player = mocker.MagicMock()
+    context.take_action(RollDiceAction(), player)
+    player.gain_coins.assert_called_once_with(1)
+
+
+def test_player_can_take_betting_slip_action(mocker):
+    camels = [Camel("red"), Camel("blue"), Camel("purple")]
+    context = GameContext(camels)
+
+    assert len(context.betting_slips["red"]) == 4
+    player = mocker.MagicMock()
+
+    context.take_action(TakeBettingSlipAction("red"), player)
+    player.take_betting_slip.assert_called_once()
+    assert len(context.betting_slips["red"]) == 3

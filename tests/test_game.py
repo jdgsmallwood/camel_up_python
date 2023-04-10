@@ -1,3 +1,4 @@
+from camel_up.actions import RollDiceAction
 from camel_up.game import (
     Action,
     BettingSlip,
@@ -14,7 +15,7 @@ from camel_up.strategies import AlwaysRollStrategy
 
 class MockPlayerStrategy(PlayerStrategy):
     def choose_action(self, context: GameContext) -> Action:
-        return Action.ROLL_DICE
+        return RollDiceAction()
 
 
 class TestPyramid:
@@ -26,6 +27,16 @@ class TestPyramid:
         assert isinstance(output, tuple)
         assert output[0] == "red"
         assert isinstance(output[1], int)
+
+    def test_doesnt_remove_dice_from_pyramid(self):
+        dice = [Dice("red")]
+        pyramid = Pyramid(dice)
+        assert len(pyramid.dice) == 1
+        assert len(pyramid.dice_still_to_roll) == 1
+
+        output = pyramid.roll_dice()
+        assert len(pyramid.dice) == 1
+        assert len(pyramid.dice_already_rolled) == 1
 
 
 class TestDice:
@@ -94,3 +105,51 @@ class TestGame:
         game = CamelUpGame(camels, [Player(AlwaysRollStrategy())])
 
         game.run_leg()
+
+    def test_score_leg(self):
+        camels = [Camel("red")]
+        game = CamelUpGame(camels, [Player(AlwaysRollStrategy())])
+
+        context = GameContext(camels)
+        game.players[0].betting_slips.append(BettingSlip("red", 5))
+        context.track[1] = ["red"]
+        context.current_space["red"] = 1
+
+        game._game_context = context
+        game._score_leg()
+        assert game.players[0].coins == 8
+        # check all betting slips are returned.
+        assert game.players[0].betting_slips == []
+
+    def test_is_game_finished_passes_to_game_context_object(self, mocker):
+        context_mock = mocker.MagicMock()
+
+        camels = [Camel("red")]
+        game = CamelUpGame(camels, [Player(AlwaysRollStrategy())])
+        game._game_context = context_mock
+
+        game.is_game_finished()
+
+        context_mock.is_game_finished.assert_called_once()
+
+    def test_after_leg_is_run_game_is_set_up_for_next_leg(self):
+        camels = [Camel("red")]
+        game = CamelUpGame(camels, [Player(AlwaysRollStrategy())])
+
+        game._game_context.betting_slips["red"] = []
+        game.run_leg()
+        assert game._game_context._pyramid.dice_already_rolled == []
+        assert len(game._game_context.betting_slips["red"]) == 4
+        # check all betting slips are returned.
+        assert game.players[0].betting_slips == []
+
+    def test_get_next_player_returns_as_expected(self, mocker):
+        players = [mocker.MagicMock() for i in range(4)]
+        camels = [Camel("red")]
+        game = CamelUpGame(camels, players)
+
+        assert game.get_next_player() == players[0]
+        game._game_context.action_number = 3
+        assert game.get_next_player() == players[3]
+        game._game_context.action_number = 6
+        assert game.get_next_player() == players[2]

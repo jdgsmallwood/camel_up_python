@@ -6,3 +6,5 @@ pytest-cov
 jupyterlab
 build
 loguru
+pytest-mock
+loguru

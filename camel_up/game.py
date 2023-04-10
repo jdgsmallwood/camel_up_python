@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import copy
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 
-from camel_up.actions import Action
+from loguru import logger
+
+from camel_up.actions import Action, ActionType
 
 
 class CamelUpGame:
@@ -24,12 +27,20 @@ class CamelUpGame:
         self._place_camels_on_board()
 
     def run_leg(self) -> None:
+        logger.info("Starting leg run")
         while not self._game_context.is_leg_finished():
-            for player in self.players:
-                player_action = player.choose_action(self._game_context)
-                self._game_context.take_action(player_action, player)
-                if self._game_context.is_leg_finished():
-                    break
+            player_to_act = self.get_next_player()
+            player_action = player_to_act.choose_action(self._game_context)
+            self._game_context.take_action(player_action, player_to_act)
+
+        self._score_leg()
+        self._game_context.reset_for_next_leg()
+
+    def is_game_finished(self) -> bool:
+        return self._game_context.is_game_finished()
+
+    def get_next_player(self):
+        return self.players[self._game_context.action_number % len(self.players)]
 
     def _place_camels_on_board(self) -> None:
         for camel in self.camels:
@@ -39,6 +50,19 @@ class CamelUpGame:
                 camel.color
             ] + self._game_context.track[dice_roll]
 
+    def _score_leg(self) -> None:
+        winner: str = self._game_context.get_leg_winner()
+        runner_up: str = self._game_context.get_leg_runner_up()
+        for player in self.players:
+            for slip in player.betting_slips:
+                if slip.color == winner:
+                    player.gain_coins(slip.winnings_if_true)
+                elif slip.color == runner_up:
+                    player.gain_coins(1)
+                else:
+                    player.lose_coins(1)
+            player.return_all_betting_slips()
+
 
 class GameContext:
 
@@ -47,6 +71,7 @@ class GameContext:
     track: dict[int, list[str]]
     current_space: dict[str, int]
     finishing_space: int
+    action_number: int
     _pyramid: Pyramid
 
     def __init__(self, camels: list[Camel], finishing_space: int = 17) -> None:
@@ -57,6 +82,7 @@ class GameContext:
         self.track = defaultdict(list)
         self.current_space = {}
         self.finishing_space = finishing_space
+        self.action_number = 0
 
     def _set_up_betting_slips(self) -> dict[str, list[BettingSlip]]:
         output: dict[str, list[BettingSlip]] = {}
@@ -68,21 +94,53 @@ class GameContext:
             output[camel.color].append(BettingSlip(camel.color, 2))
         return output
 
-    def take_action(self, player_action: Action, player: Player) -> None:
-        match player_action:
-            case Action.ROLL_DICE:
+    def take_action(self, player_action: Action, player: Player, **kwargs) -> None:
+        match player_action.action_type:
+            case ActionType.ROLL_DICE:
                 self.roll_dice_and_move_camel()
                 player.gain_coins(1)
+            case ActionType.BET_ON_LEG_WINNER:
+                player.take_betting_slip(self.get_top_betting_slip(player_action.color))
+
+        self.action_number += 1
 
     def is_leg_finished(self) -> bool:
-        return len(self._pyramid.dice_still_to_roll) == 0 or any(
-            self.current_space[color] >= self.finishing_space
-            for color in self.camel_colors
+        logger.info(
+            f"Leg finish check! Dice still to roll are {self._pyramid.dice_still_to_roll}"
         )
+        return len(self._pyramid.dice_still_to_roll) == 0 or self.is_game_finished()
+
+    def is_game_finished(self) -> bool:
+        return max(self.current_space.values()) >= self.finishing_space
 
     def roll_dice_and_move_camel(self):
         color, dice_roll = self._pyramid.roll_dice()
+        logger.info(f"Moving {color} {dice_roll} spaces.")
         self._move_camel(color, dice_roll)
+
+    def get_leg_winner(self) -> str:
+        furthest_space: int = max(self.current_space.values())
+        return self.track[furthest_space][0]
+
+    def get_leg_runner_up(self) -> str:
+        if len(self.camels) < 2:
+            return ""
+
+        spaces = list(self.current_space.values())
+        spaces.sort(reverse=True)
+        second_placed_camel_space = spaces[1]
+
+        if second_placed_camel_space == max(spaces):
+            return self.track[second_placed_camel_space][1]
+
+        return self.track[second_placed_camel_space][0]
+
+    def get_top_betting_slip(self, color: str) -> BettingSlip:
+        return self.betting_slips[color].pop(0)
+
+    def reset_for_next_leg(self) -> None:
+        self._pyramid.reset()
+        self.betting_slips = self._set_up_betting_slips()
 
     def _move_camel(self, color: str, dice_roll: int):
         current_position = self.current_space[color]
@@ -111,7 +169,7 @@ class Pyramid:
         return (dice_to_roll.color, dice_to_roll.roll())
 
     def reset(self) -> None:
-        self.dice_still_to_roll = self.dice
+        self.dice_still_to_roll = copy.copy(self.dice)
         self.dice_already_rolled = []
         random.shuffle(self.dice_still_to_roll)
 
@@ -122,6 +180,12 @@ class Dice:
 
     def __init__(self, color: str) -> None:
         self.color = color
+
+    def __str__(self) -> str:
+        return f"Dice: {self.color}"
+
+    def __repr__(self):
+        return self.__str__()
 
     def roll(self) -> int:
         return random.sample(self.possible_values, k=1)[0]
