@@ -4,3 +4,4 @@ ruff
 pyright
 pytest-mock
 pyright
+nbstripout

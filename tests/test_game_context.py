@@ -172,3 +172,11 @@ def test_get_current_occupied_spaces(mocker):
 
     output = context.get_current_occupied_spaces()
     assert output == [2, 4, 8]
+
+
+def test_game_context_counts_leg_number(mocker):
+    camels = [Camel("red"), Camel("blue"), Camel("purple")]
+    context = GameContext(camels)
+    assert context.leg_number == 1
+    context.reset_for_next_leg()
+    assert context.leg_number == 2

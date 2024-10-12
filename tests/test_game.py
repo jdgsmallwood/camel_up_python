@@ -173,3 +173,16 @@ class TestGame:
 
         game.run_stepped_turn()
         assert not game.player_turn.automated
+
+    def test_leg_number_reported_faithfully(self, mocker):
+        camels = [Camel("red")]
+        game = CamelUpGame(camels, [Player(AlwaysRollStrategy())])
+
+        game._game_context.track[16] = ["red"]
+        # Chosen so that any dice roll will take it over the finish line.
+        game._game_context.current_space["red"] = 16
+        game._game_context.leg_number = 17
+        game.run_leg()
+        
+        assert game.is_game_finished()
+        assert game.get_leg_number() == 17
