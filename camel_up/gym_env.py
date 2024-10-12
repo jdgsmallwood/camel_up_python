@@ -109,14 +109,22 @@ class CamelUpEnv(gym.Env):
         while first_run or self.game.player_turn.automated:
             if self.game.is_game_finished():
                 terminate = True
-                winner = self.game.get_winner()
-                self.winners.append(winner.player_number)
                 break
             self.game.run_stepped_turn()
             first_run = False
 
         obs = self._get_obs()
         reward = self.game.player_turn.coins  # - current_coins
+
+        if terminate:
+            winner = self.game.get_winner()
+            # If one of the other players wins - we lost. Have a big penalty.
+            if winner.automated:
+                reward -= 1000
+            else:
+                reward += 1000
+            self.winners.append(winner.player_number)
+
         self.action_mask = self._update_action_mask()
         return obs, reward, terminate, False, {}
 
