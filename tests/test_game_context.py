@@ -158,3 +158,17 @@ def test_player_can_take_betting_slip_action(mocker):
     context.take_action(TakeBettingSlipAction("red"), player)
     player.take_betting_slip.assert_called_once()
     assert len(context.betting_slips["red"]) == 3
+
+
+def test_get_current_occupied_spaces(mocker):
+    camels = [Camel("red"), Camel("blue"), Camel("purple")]
+    context = GameContext(camels)
+
+    context.current_space = {
+        "red": 2,
+        "blue": 4,
+        "purple": 8,
+    }
+
+    output = context.get_current_occupied_spaces()
+    assert output == [2, 4, 8]

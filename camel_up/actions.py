@@ -8,12 +8,14 @@ class ActionType(Enum):
     BET_ON_OVERALL_WINNER = "bet_on_overall_winner"
     BET_ON_OVERALL_LOSER = "bet_on_overall_loser"
 
+
 class Action:
     action_type: ActionType
 
 
 class RollDiceAction(Action):
     action_type = ActionType.ROLL_DICE
+
 
 class TakeBettingSlipAction(Action):
     action_type = ActionType.BET_ON_LEG_WINNER

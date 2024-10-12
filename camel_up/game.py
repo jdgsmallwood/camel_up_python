@@ -12,10 +12,10 @@ from camel_up.actions import Action, ActionType
 
 
 class CamelUpGame:
-
     camels: list[Camel]
     players: list[Player]
     finishing_space: int = 17
+    player_turn: Player
 
     _game_context: GameContext
 
@@ -25,6 +25,7 @@ class CamelUpGame:
 
         self._game_context = GameContext(camels, self.finishing_space)
         self._place_camels_on_board()
+        self.player_turn = None
 
     def run_leg(self) -> None:
         logger.info("Starting leg run")
@@ -36,11 +37,38 @@ class CamelUpGame:
         self._score_leg()
         self._game_context.reset_for_next_leg()
 
+    def run_stepped_turn(self) -> None:
+        logger.info("Running a turn...")
+
+        for _ in range(len(self.players)):
+            player_to_act = self.get_next_player()
+            if not player_to_act.automated:
+                return
+
+            player_action = player_to_act.choose_action(self._game_context)
+            self._game_context.take_action(player_action, player_to_act)
+
+            if self._game_context.is_leg_finished():
+                self._score_leg()
+                self._game_context.reset_for_next_leg()
+                return
+
     def is_game_finished(self) -> bool:
-        return self._game_context.is_game_finished()
+        if not self._game_context.is_game_finished():
+            return False
+
+        logger.info("Final Scores")
+        for i, player in enumerate(self.players):
+            logger.info(f"Player {i}: {player.coins}")
+
+        return True
 
     def get_next_player(self):
-        return self.players[self._game_context.action_number % len(self.players)]
+        self.player_turn = self.players[
+            self._game_context.action_number % len(self.players)
+        ]
+        logger.info(f"It's now Player {self.player_turn.player_number}'s turn...")
+        return self.player_turn
 
     def _place_camels_on_board(self) -> None:
         for camel in self.camels:
@@ -51,21 +79,46 @@ class CamelUpGame:
             ] + self._game_context.track[dice_roll]
 
     def _score_leg(self) -> None:
+        logger.info("Scoring leg...")
         winner: str = self._game_context.get_leg_winner()
         runner_up: str = self._game_context.get_leg_runner_up()
-        for player in self.players:
+        for i, player in enumerate(self.players):
+            logger.info(f"Player {i}")
             for slip in player.betting_slips:
                 if slip.color == winner:
                     player.gain_coins(slip.winnings_if_true)
+                    logger.info(
+                        f"Bet on the winner & received {slip.winnings_if_true} coins."
+                    )
                 elif slip.color == runner_up:
                     player.gain_coins(1)
+                    logger.info(f"Bet on the runner-up & received 1 coin.")
                 else:
                     player.lose_coins(1)
+                    logger.info("Bet on the wrong horse and lost 1 coin.")
             player.return_all_betting_slips()
+
+        logger.info("Current Scores")
+        for i, player in enumerate(self.players):
+            logger.info(f"Player {i}: {player.coins}")
+
+    def reset(self) -> None:
+        self._game_context = GameContext(self.camels, self.finishing_space)
+        [player.reset() for player in self.players]
+        self._place_camels_on_board()
+
+    def get_winner(self) -> Player:
+        highest_score = 0
+        highest_score_player = None
+        for player in self.players:
+            if player.coins > highest_score:
+                highest_score_player = player
+                highest_score = player.coins
+
+        return highest_score_player
 
 
 class GameContext:
-
     camels: list[Camel]
     betting_slips: dict[str, list[BettingSlip]]
     track: dict[int, list[str]]
@@ -153,6 +206,11 @@ class GameContext:
         for camel_color in stack:
             self.current_space[camel_color] = current_position + dice_roll
 
+    def get_current_occupied_spaces(self) -> list[int]:
+        output = list(set(self.current_space.values()))
+        output = sorted(output)
+        return output
+
 
 class Pyramid:
     dice: list[Dice]
@@ -207,11 +265,17 @@ class Player:
     strategy: PlayerStrategy
     coins: int
     betting_slips: list[BettingSlip]
+    automated: bool
+    player_number: int
 
-    def __init__(self, strategy: PlayerStrategy) -> None:
+    def __init__(
+        self, strategy: PlayerStrategy, player_number=1, automated: bool = True
+    ) -> None:
         self.coins = 3
         self.strategy = strategy
         self.betting_slips = []
+        self.automated = automated
+        self.player_number = player_number
 
     def gain_coins(self, coins_to_gain: int) -> None:
         self.coins += coins_to_gain
@@ -230,6 +294,10 @@ class Player:
         self.betting_slips = []
         return betting_slips
 
+    def reset(self) -> None:
+        self.coins = 3
+        self.betting_slips = []
+
 
 @dataclass
 class BettingSlip:
@@ -245,5 +313,4 @@ class PlayerStrategy(ABC):
     """
 
     @abstractmethod
-    def choose_action(self, context: GameContext) -> Action:
-        ...
+    def choose_action(self, context: GameContext) -> Action: ...
