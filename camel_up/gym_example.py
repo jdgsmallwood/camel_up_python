@@ -50,11 +50,11 @@ class CamelUpAgent:
             # with probability (1 - epsilon) act greedily (exploit)
             else:
                 proposed_action = int(np.argmax(self.q_values[obs]))
-            valid_action = env.action_mask[proposed_action]
+            valid_action = env.unwrapped.action_mask[proposed_action]
 
-        logger.info(f"Taking action {env.action_mapping[proposed_action]}")
-        if hasattr(env.action_mapping[proposed_action], "color"):
-            logger.info(env.action_mapping[proposed_action].color)
+        logger.info(f"Taking action {env.unwrapped.action_mapping[proposed_action]}")
+        if hasattr(env.unwrapped.action_mapping[proposed_action], "color"):
+            logger.info(env.unwrapped.action_mapping[proposed_action].color)
         return proposed_action
 
     def update(
@@ -83,7 +83,7 @@ class CamelUpAgent:
 env = gym.make("camel_up")
 
 learning_rate = 0.01
-n_episodes = 500_000
+n_episodes = 10_000
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
 final_epsilon = 0.1
@@ -95,7 +95,7 @@ agent = CamelUpAgent(
     epsilon_decay=epsilon_decay,
     final_epsilon=final_epsilon,
 )
-env = gym.wrappers.RecordEpisodeStatistics(env, deque_size=n_episodes)
+env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
 
 for episode in tqdm(range(n_episodes)):
     obs, info = env.reset()
@@ -105,7 +105,6 @@ for episode in tqdm(range(n_episodes)):
     while not done:
         action = agent.get_action(frozenset(obs))
         next_obs, reward, terminated, truncated, info = env.step(action)
-
         # update the agent
         agent.update(frozenset(obs), action, reward, terminated, frozenset(next_obs))
 
@@ -118,7 +117,7 @@ for episode in tqdm(range(n_episodes)):
 
 from collections import Counter
 
-occurrences = Counter(env.winners)
+occurrences = Counter(env.unwrapped.winners)
 logger.info(occurrences)
 
 

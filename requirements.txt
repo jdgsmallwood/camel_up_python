@@ -1,4 +1,6 @@
 jupyterlab
 build
 loguru
-gymnasium
+gymnasium>=1.0.0
+tqdm
+matplotlib
