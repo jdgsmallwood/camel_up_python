@@ -83,7 +83,7 @@ class CamelUpAgent:
 env = gym.make("camel_up")
 
 learning_rate = 0.01
-n_episodes = 10_000
+n_episodes = 500_000
 start_epsilon = 1.0
 epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
 final_epsilon = 0.1

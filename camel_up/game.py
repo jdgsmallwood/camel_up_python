@@ -35,7 +35,8 @@ class CamelUpGame:
             self._game_context.take_action(player_action, player_to_act)
 
         self._score_leg()
-        self._game_context.reset_for_next_leg()
+        if not self.is_game_finished():
+            self._game_context.reset_for_next_leg()
 
     def run_stepped_turn(self) -> None:
         logger.info("Running a turn...")
@@ -117,6 +118,9 @@ class CamelUpGame:
 
         return highest_score_player
 
+    def get_leg_number(self) -> int:
+        return self._game_context.leg_number
+
 
 class GameContext:
     camels: list[Camel]
@@ -136,6 +140,7 @@ class GameContext:
         self.current_space = {}
         self.finishing_space = finishing_space
         self.action_number = 0
+        self.leg_number = 1
 
     def _set_up_betting_slips(self) -> dict[str, list[BettingSlip]]:
         output: dict[str, list[BettingSlip]] = {}
@@ -194,6 +199,7 @@ class GameContext:
     def reset_for_next_leg(self) -> None:
         self._pyramid.reset()
         self.betting_slips = self._set_up_betting_slips()
+        self.leg_number += 1
 
     def _move_camel(self, color: str, dice_roll: int):
         current_position = self.current_space[color]

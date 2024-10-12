@@ -4,3 +4,6 @@ loguru
 gymnasium>=1.0.0
 tqdm
 matplotlib
+ipywidgets
+plotnine
+pandas
