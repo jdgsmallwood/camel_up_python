@@ -5,7 +5,12 @@ from camel_up.strategies import AlwaysRollStrategy, TakeLeaderBetSlipStrategy
 
 
 def main() -> None:
-    players: list[Player] = [Player(AlwaysRollStrategy()), Player(AlwaysRollStrategy()), Player(TakeLeaderBetSlipStrategy()), Player(TakeLeaderBetSlipStrategy())]
+    players: list[Player] = [
+        Player(AlwaysRollStrategy()),
+        Player(AlwaysRollStrategy()),
+        Player(TakeLeaderBetSlipStrategy()),
+        Player(TakeLeaderBetSlipStrategy()),
+    ]
     camels: list[Camel] = [
         Camel(color=color) for color in ["red", "blue", "green", "purple", "yellow"]
     ]

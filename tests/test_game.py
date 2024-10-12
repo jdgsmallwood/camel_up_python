@@ -153,3 +153,23 @@ class TestGame:
         assert game.get_next_player() == players[3]
         game._game_context.action_number = 6
         assert game.get_next_player() == players[2]
+
+    def test_reset(self, mocker):
+        players = [mocker.MagicMock() for i in range(4)]
+        camels = [Camel("red")]
+        game = CamelUpGame(camels, players)
+
+        game._game_context.current_space["red"] = 400
+
+        game.reset()
+        assert game._game_context.current_space["red"] <= 3
+
+    def test_stepped_turn_stops_on_automated_player(self, mocker):
+        non_automated_player = mocker.MagicMock()
+        non_automated_player.automated = False
+        players = [mocker.MagicMock() for i in range(4)] + [non_automated_player]
+        camels = [Camel("red")]
+        game = CamelUpGame(camels, players)
+
+        game.run_stepped_turn()
+        assert not game.player_turn.automated
