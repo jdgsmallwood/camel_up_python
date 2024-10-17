@@ -1,6 +1,9 @@
+import random
+
+from loguru import logger
+
 from camel_up.actions import Action, RollDiceAction, TakeBettingSlipAction
 from camel_up.game import GameContext, Player, PlayerStrategy
-from loguru import logger
 
 
 class AlwaysRollStrategy(PlayerStrategy):
@@ -33,3 +36,19 @@ class TakeLeaderBetSlipStrategy(PlayerStrategy):
             return TakeBettingSlipAction(current_leader)
         logger.info("rolling dice...")
         return RollDiceAction()
+
+
+class RandomActionStrategy(PlayerStrategy):
+    """This strategy chooses randomly between all different actions."""
+
+    def choose_action(self, context: GameContext) -> Action:
+        possible_actions = [RollDiceAction()]
+
+        for color in context.camel_colors:
+            if len(context.betting_slips[color]) > 0:
+                possible_actions.append(TakeBettingSlipAction(color))
+
+        action = random.choice(possible_actions)
+
+        logger.info(f"Choosing {action}...")
+        return action

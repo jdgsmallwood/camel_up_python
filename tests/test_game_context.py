@@ -1,5 +1,5 @@
-from camel_up.game import Action, Camel, GameContext, Player
 from camel_up.actions import RollDiceAction, TakeBettingSlipAction
+from camel_up.game import Action, Camel, GameContext, Player
 
 
 def test_game_context_camels_move_as_expected_one_camel():
