@@ -1,9 +1,11 @@
-import gymnasium as gym
-import camel_up
 from collections import defaultdict
+
+import gymnasium as gym
 import numpy as np
-from tqdm import tqdm
 from loguru import logger
+from tqdm import tqdm
+
+import camel_up
 
 
 class CamelUpAgent:

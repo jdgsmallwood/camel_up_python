@@ -1,6 +1,6 @@
 from camel_up.actions import RollDiceAction, TakeBettingSlipAction
+from camel_up.game import BettingSlip, Camel, GameContext
 from camel_up.strategies import AlwaysRollStrategy, TakeLeaderBetSlipStrategy
-from camel_up.game import BettingSlip, GameContext, Camel
 
 
 def test_always_rolls_dice():

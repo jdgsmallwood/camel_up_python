@@ -183,6 +183,6 @@ class TestGame:
         game._game_context.current_space["red"] = 16
         game._game_context.leg_number = 17
         game.run_leg()
-        
+
         assert game.is_game_finished()
         assert game.get_leg_number() == 17

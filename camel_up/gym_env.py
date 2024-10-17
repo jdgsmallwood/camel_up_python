@@ -1,11 +1,11 @@
 import gymnasium as gym
-from gymnasium import spaces
 import numpy as np
+from gymnasium import spaces
+from loguru import logger
 
 from camel_up import actions
 from camel_up.game import Camel, CamelUpGame, Player
 from camel_up.strategies import AlwaysRollStrategy, TakeLeaderBetSlipStrategy
-from loguru import logger
 
 
 class CamelUpEnv(gym.Env):
