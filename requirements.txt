@@ -7,3 +7,5 @@ matplotlib
 ipywidgets
 plotnine
 pandas
+torch
+scikit-learn
