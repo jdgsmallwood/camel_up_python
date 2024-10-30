@@ -5,3 +5,4 @@ pyright
 pytest-mock
 pyright
 nbstripout
+python_mermaid
